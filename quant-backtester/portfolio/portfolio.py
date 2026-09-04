@@ -7,8 +7,11 @@ from dataclasses import dataclass
 class Position:
     symbol: str
     quantity: float = 0.0
+    entry_market_price: float | None = None
     entry_price: float | None = None
     entry_date: object | None = None
+    entry_fee: float = 0.0
+    entry_slippage_cost: float = 0.0
 
     @property
     def is_open(self) -> bool:
@@ -26,7 +29,11 @@ class Portfolio:
             raise ValueError("initial_capital must be positive.")
         if self.cash is None:
             self.cash = float(self.initial_capital)
+        if self.cash < 0:
+            raise ValueError("cash cannot be negative.")
 
     def equity(self, mark_price: float) -> float:
+        if mark_price <= 0:
+            raise ValueError("mark_price must be positive.")
         quantity = 0.0 if self.position is None else self.position.quantity
         return float(self.cash + quantity * mark_price)

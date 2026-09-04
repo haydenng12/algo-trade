@@ -149,3 +149,61 @@ python examples/stage3_demo.py SPY --risk-free 0.04
 
 Stage 3 is complete when all performance metrics are independently tested against known calculations and a complete backtest result can be converted into a consistent portfolio/trade performance summary. Transaction costs, slippage, modular sizing, and stronger cash/execution constraints remain Stage 4 work.
 
+
+## Stage 4 — Realistic Trading
+
+Stage 4 adds configurable execution realism while preserving the Stage 1–3 behavior when all frictions are zero.
+
+### Added
+- Transaction-cost model in basis points of executed notional.
+- Symmetric adverse slippage model: buys execute above the observed Open and sells below it.
+- Fixed-fraction position sizing with a reusable equal-weight sizing utility for later multi-asset work.
+- Cash-aware buy resizing so fees/slippage cannot drive cash negative.
+- Explicit configurable signal-to-execution delay (minimum one trading period to prevent look-ahead).
+- Daily tracking of traded notional, fees, slippage, and cumulative execution friction.
+- Trade-level reconciliation of gross P&L, transaction costs, slippage costs, total costs, and net P&L.
+
+### Run the Stage 4 demo
+From the repository root, run the example as a module:
+
+```bash
+python -m examples.stage4_demo SPY --start 2015-01-01 --end 2026-01-01 --fast 20 --slow 50 --fees-bps 5 --slippage-bps 5 --position-fraction 1.0 --delay 1
+```
+
+### Verify
+
+```bash
+pytest -v
+```
+
+Expected Stage 4 suite: 36 passing tests.
+
+## Stage 5 — Research Framework
+
+Stage 5 turns the engine into a controlled research platform rather than a single historical backtest.
+
+Implemented modules:
+
+- `research/benchmark.py` — frictionless buy-and-hold benchmark over the exact comparison period.
+- `research/split.py` — chronological train/test and date-based splits; time-series data is never shuffled.
+- `research/grid.py` — moving-average parameter grids, training-only parameter selection, and untouched out-of-sample evaluation.
+- `research/oos.py` — the single shared OOS execution path used by OOS evaluation, walk-forward testing, and cost sensitivity; it warms indicators with past prices while starting portfolio accounting fresh at the evaluation boundary.
+- `research/walk_forward.py` — rolling or expanding walk-forward testing. Each fold tunes on past data and evaluates only on the immediately following test window.
+- `research/cost_sensitivity.py` — repeated OOS backtests under configurable friction assumptions using the same historical lookback context as the primary OOS run.
+- `examples/stage5_demo.py` — real-data demonstration combining parameter selection, OOS evaluation, benchmark comparison, walk-forward folds, and cost sensitivity.
+
+### Stage 5 research convention
+
+Parameter choices are made using training data only. Test data is not used to choose SMA windows. For OOS evaluation, historical training prices may provide moving-average lookback context, but the test-period backtest starts flat with fresh capital. Cost-sensitivity runs use that exact same OOS signal-preparation path, so a sensitivity row with identical fees/slippage must reconcile with the primary OOS result. Walk-forward folds also use the shared OOS runner, start each fold flat, and chain each fold's ending capital into the next fold.
+
+Run the complete test suite:
+
+```bash
+pytest -v
+```
+
+Run the Stage 5 research demo:
+
+```bash
+python -m examples.stage5_demo SPY --start 2010-01-01 --end 2026-01-01 --fees-bps 5 --slippage-bps 5
+```
