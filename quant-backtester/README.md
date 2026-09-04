@@ -257,3 +257,11 @@ Run from the `quant-backtester` directory:
 ```powershell
 streamlit run app.py
 ```
+
+### Stage 7.1 — Dashboard UI polish
+- Dark-theme Matplotlib charts integrated with the Streamlit interface.
+- Finance-formatted benchmark comparison table.
+- Benchmark values shown as neutral references rather than misleading metric deltas.
+- Human-readable strategy configuration cards replace raw JSON.
+- Automatic strategy-vs-benchmark interpretation highlights return, volatility, and drawdown trade-offs.
+- More compact chart sizing and metric-card styling for a presentation-ready overview.

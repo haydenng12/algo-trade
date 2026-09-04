@@ -74,3 +74,48 @@ def test_parameter_grid_filters_invalid_pairs_and_sorts_by_sharpe():
     grid = moving_average_parameter_grid("SPY", frame, [10, 50], [20, 40])
     assert (grid["fast_window"] < grid["slow_window"]).all()
     assert grid["sharpe_ratio"].is_monotonic_decreasing
+
+from dashboard.presentation import benchmark_comparison_table, configuration_rows, interpretation_text
+
+
+def test_benchmark_comparison_table_formats_finance_values_for_display():
+    summary = {
+        "total_return": 1.0885,
+        "cagr": 0.0693,
+        "annualized_volatility": 0.1131,
+        "sharpe_ratio": 0.65,
+        "maximum_drawdown": -0.292,
+    }
+    benchmark = {
+        "total_return": 2.9974,
+        "cagr": 0.1343,
+        "annualized_volatility": 0.1779,
+        "sharpe_ratio": 0.80,
+        "maximum_drawdown": -0.3372,
+    }
+    table = benchmark_comparison_table(summary, benchmark)
+    assert table.loc[0, "Strategy"] == "108.85%"
+    assert table.loc[0, "Benchmark"] == "299.74%"
+    assert table.loc[3, "Strategy"] == "0.65"
+
+
+def test_configuration_rows_are_human_readable_not_raw_json():
+    rows = configuration_rows("Moving Average Trend", {"fast_window": 20, "slow_window": 50})
+    assert rows == [("Fast SMA", "20 days"), ("Slow SMA", "50 days")]
+
+
+def test_interpretation_text_reports_return_and_risk_tradeoff():
+    summary = {
+        "total_return": 1.0885,
+        "annualized_volatility": 0.1131,
+        "maximum_drawdown": -0.292,
+    }
+    benchmark = {
+        "total_return": 2.9974,
+        "annualized_volatility": 0.1779,
+        "maximum_drawdown": -0.3372,
+    }
+    text = interpretation_text(summary, benchmark)
+    assert "trailed the benchmark" in text
+    assert "lower annualized volatility" in text
+    assert "shallower maximum drawdown" in text
