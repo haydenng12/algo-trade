@@ -11,11 +11,36 @@ from analytics.performance import cagr, equity_returns, total_return
 from analytics.risk import annualized_volatility, sharpe_ratio
 from dashboard.charts import cost_sensitivity_figure, drawdown_figure, normalized_equity_figure, weights_figure
 from dashboard.research import cost_sensitivity_table, moving_average_parameter_grid
+from dashboard.presentation import benchmark_comparison_table, configuration_rows, interpretation_text
 from dashboard.runner import StrategyConfig, run_strategy
 from data.loader import MarketDataLoader
 
 
 st.set_page_config(page_title="Quant Backtester", page_icon="📈", layout="wide")
+
+st.markdown(
+    """
+    <style>
+    .block-container {padding-top: 1.4rem; padding-bottom: 2rem;}
+    [data-testid="stMetric"] {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 10px;
+        padding: 0.85rem 1rem;
+    }
+    [data-testid="stMetricLabel"] {color: #9aa4b2;}
+    div[data-testid="stMetricValue"] {font-size: 1.75rem;}
+    .benchmark-note {color: #8b949e; font-size: 0.76rem; margin-top: -0.4rem;}
+    .config-card {
+        background: #161b22; border: 1px solid #30363d; border-radius: 10px;
+        padding: 0.7rem 0.9rem; margin-bottom: 0.45rem;
+    }
+    .config-label {color: #8b949e; font-size: 0.76rem;}
+    .config-value {color: #e6edf3; font-weight: 600; font-size: 0.95rem;}
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
@@ -169,34 +194,32 @@ metric_pairs = [
     ("Max Drawdown", pct(float(run.summary["maximum_drawdown"])), pct(benchmark["maximum_drawdown"])),
 ]
 for col, (label, value, bench_value) in zip(cols, metric_pairs):
-    delta = None if bench_value is None else f"Benchmark {bench_value}"
-    col.metric(label, value, delta=delta, delta_color="off")
+    col.metric(label, value)
+    if bench_value is not None:
+        col.markdown(f'<div class="benchmark-note">Benchmark: {bench_value}</div>', unsafe_allow_html=True)
 
 overview, risk_tab, research_tab = st.tabs(["Overview", "Risk & Trading", "Research"])
 
 with overview:
-    left, right = st.columns([2, 1])
+    st.info(interpretation_text(run.summary, benchmark), icon="↔️")
+    left, right = st.columns([2.25, 1], gap="large")
     with left:
         fig = normalized_equity_figure(run.equity, run.benchmark_equity, run.name, run.benchmark_name)
-        st.pyplot(fig, clear_figure=True)
+        st.pyplot(fig, clear_figure=True, use_container_width=True)
         plt.close(fig)
     with right:
         st.markdown("#### Benchmark")
-        st.write(run.benchmark_name)
-        comparison = pd.DataFrame({
-            "Strategy": [
-                float(run.summary["total_return"]), float(run.summary["cagr"]),
-                float(run.summary["annualized_volatility"]), float(run.summary["sharpe_ratio"]),
-                float(run.summary["maximum_drawdown"]),
-            ],
-            "Benchmark": [
-                benchmark["total_return"], benchmark["cagr"], benchmark["annualized_volatility"],
-                benchmark["sharpe_ratio"], benchmark["maximum_drawdown"],
-            ],
-        }, index=["Total Return", "CAGR", "Volatility", "Sharpe", "Max Drawdown"])
-        st.dataframe(comparison.style.format({"Strategy": "{:.3f}", "Benchmark": "{:.3f}"}), use_container_width=True)
+        st.caption(run.benchmark_name)
+        comparison = benchmark_comparison_table(run.summary, benchmark)
+        st.dataframe(comparison, use_container_width=True, hide_index=True)
+
         st.markdown("#### Current Configuration")
-        st.json(active_config.params)
+        for label, value in configuration_rows(active_config.name, active_config.params):
+            st.markdown(
+                f'<div class="config-card"><div class="config-label">{label}</div>'
+                f'<div class="config-value">{value}</div></div>',
+                unsafe_allow_html=True,
+            )
 
 with risk_tab:
     fig = drawdown_figure(run.drawdown)
