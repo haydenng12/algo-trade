@@ -207,3 +207,53 @@ Run the Stage 5 research demo:
 ```bash
 python -m examples.stage5_demo SPY --start 2010-01-01 --end 2026-01-01 --fees-bps 5 --slippage-bps 5
 ```
+
+## Stage 6 — Additional Strategies and Risk Models
+
+Stage 6 expands the framework beyond one moving-average strategy family and adds a multi-asset target-weight execution path.
+
+Implemented:
+
+- `strategies/zscore_mean_reversion.py` — long/flat rolling Z-score mean reversion with stateful entry/exit thresholds.
+- `strategies/rsi.py` — long/flat RSI mean reversion using Wilder-style smoothing.
+- `strategies/cross_sectional_momentum.py` — relative-strength ranking across an ETF universe with equal-weight top-N selection and configurable rebalance frequency.
+- `portfolio/volatility_targeting.py` — realized-volatility sizing that scales exposure toward an annualized volatility target without leverage.
+- `backtest/multi_asset.py` — long-only target-weight engine for multiple assets, with next-period execution, transaction costs, slippage, cash accounting, and residual cash.
+- `research/strategy_comparison.py` — common helpers for comparing single- and multi-asset portfolio results.
+- `examples/stage6_demo.py` — runs moving average, Z-score mean reversion, RSI, cross-sectional momentum, and volatility-targeted trend following under the same fee/slippage assumptions.
+
+### Stage 6 timing convention
+
+All new signals or target weights use information available through day t and execute no earlier than day t+1 Open. Cross-sectional rankings use only trailing returns. Volatility estimates use only trailing realized returns. The multi-asset engine never permits negative weights or aggregate target weight above 100%, so Stage 6 remains long-only and unlevered.
+
+Run the full suite:
+
+```bash
+pytest -v
+```
+
+Run the Stage 6 demonstration:
+
+```bash
+python -m examples.stage6_demo --start 2015-01-01 --end 2026-01-01 --fees-bps 5 --slippage-bps 5
+```
+
+## Stage 7 — Streamlit Research Dashboard
+
+Stage 7 adds an interactive dashboard on top of the existing Stage 1–6 research engine. It does not reimplement strategy logic in the UI; every displayed result is produced by the same backtest modules used in the command-line demos and tests.
+
+Features:
+- Strategy selector for moving-average trend, Z-score mean reversion, RSI mean reversion, cross-sectional momentum, and volatility-targeted trend.
+- Configurable ticker universe, dates, capital, fees, slippage, and strategy parameters.
+- Headline performance cards, benchmark comparison, normalized equity curve, and drawdown visualization.
+- Completed-trade table for single-asset strategies and target-weight history for multi-asset strategies.
+- Transaction-fee, slippage, and traded-notional reporting.
+- Cost-sensitivity research for every strategy.
+- Exploratory moving-average parameter grid with an explicit warning that full-period optimization is not out-of-sample evidence.
+- Cross-sectional momentum is benchmarked against an equal-weight buy-and-hold portfolio of the same universe rather than only SPY.
+
+Run from the `quant-backtester` directory:
+
+```powershell
+streamlit run app.py
+```
