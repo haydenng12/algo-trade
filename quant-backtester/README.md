@@ -109,3 +109,43 @@ If the moving-average comparison produces a long signal using Tuesday's complete
 ### Stage 2 exit criterion
 
 Stage 2 is complete when the moving-average strategy can run end-to-end with reconciled cash/position accounting, an equity curve and completed trade history, while tests prove that no day-`t` signal can change holdings before day `t+1`.
+
+## Stage 3 — Performance Analytics
+
+Implemented:
+
+- Total return from initial capital to ending equity
+- CAGR using the actual elapsed calendar time of the backtest
+- Period-to-period portfolio returns derived from the equity curve
+- Annualized volatility using daily sample standard deviation × `sqrt(252)`
+- Annualized Sharpe ratio with an optional annual risk-free rate converted to a daily equivalent
+- Annualized Sortino ratio using downside deviation below a configurable periodic target
+- Drawdown series and maximum drawdown from the running equity high-water mark
+- Completed-trade analytics: number of trades, win rate, profit factor, average trade return, average winner, average loser, best/worst trade, and average holding period
+- Unified `performance_summary(...)` for later dashboard/report consumption
+- Hand-checkable automated tests for each core formula and an end-to-end summary reconciliation test
+
+### Stage 3 metric conventions
+
+Portfolio metrics are calculated from the daily **equity curve**, not directly from the asset's raw returns. This matters because the strategy may be in cash on some days. Volatility and Sharpe use 252 trading periods per year. CAGR instead uses actual elapsed calendar time because it describes compound growth over the real backtest duration.
+
+Maximum drawdown is reported as a negative percentage. For example, `-0.20` means the portfolio fell 20% from a previous equity peak before recovering or reaching the end of the test.
+
+Trade statistics use **completed trades only**. An open position at the final backtest date remains reflected in ending equity and portfolio-level metrics, but it is not invented into a closed trade for win-rate or profit-factor calculations.
+
+### Run Stage 3 analytics
+
+```bash
+python examples/stage3_demo.py SPY --start 2015-01-01 --end 2026-01-01 --fast 20 --slow 50
+```
+
+Optionally provide an annual effective risk-free rate, e.g. 4%:
+
+```bash
+python examples/stage3_demo.py SPY --risk-free 0.04
+```
+
+### Stage 3 exit criterion
+
+Stage 3 is complete when all performance metrics are independently tested against known calculations and a complete backtest result can be converted into a consistent portfolio/trade performance summary. Transaction costs, slippage, modular sizing, and stronger cash/execution constraints remain Stage 4 work.
+
